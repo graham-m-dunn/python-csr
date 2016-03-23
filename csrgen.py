@@ -125,13 +125,15 @@ def generate_files(mk_file, request):
         exit()
 
 
-# Run Portion
-parser = argparse.ArgumentParser()
-parser.add_argument("name", help="Provide the FQDN", action="store")
-parser.add_argument("-s", "--san", help="SANS", action="store", nargs='*', default="")
-args = parser.parse_args()
+if __name__ == "__main__":
+    # Run Portion
+    parser = argparse.ArgumentParser()
 
-hostname = args.name
-sans = args.san
+    parser.add_argument("name", help="Provide the FQDN", action="store")
+    parser.add_argument("-s", "--san", help="SANS", action="store", nargs='*', default="")
+    args = parser.parse_args()
 
-generate_csr(hostname, sans)
+    hostname = args.name
+    sans = args.san
+
+    generate_csr(hostname, sans)
