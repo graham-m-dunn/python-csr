@@ -10,59 +10,67 @@
 # Author: Courtney Cotton <cotton@cottoncourtney.com> 06-25-2014
 
 # Libraries/Modules
-from OpenSSL import crypto, SSL
-import subprocess, os, sys, shutil
 import argparse
 
-# Generate Certificate Signing Request (CSR)
-def generateCSR(nodename, sans = []):
+from OpenSSL import crypto
 
-  while True:
-    C  = raw_input("Enter your Country Name (2 letter code) [US]: ")
-    if len(C) != 2:
-      print "You must enter two letters. You entered %r" % (C)
-      continue
-    ST = raw_input("Enter your State or Province <full name> []:California: ")
-    if len(ST) == 0:
-      print "Please enter your State or Province."
-      continue
-    L  = raw_input("Enter your (Locality Name (eg, city) []:San Francisco: ")
-    if len(L) == 0:
-      print "Please enter your City."
-      continue
-    O  = raw_input("Enter your Organization Name (eg, company) []:FTW Enterprise: ")
-    if len(L) == 0:
-       print "Please enter your Organization Name."
-       continue
-    OU = raw_input("Enter your Organizational Unit (eg, section) []:IT: ")
-    if len(OU) == 0:
-      print "Please enter your OU."
-      continue
-    
+
+def generate_csr(nodename, alternate_names=None):
+    """
+    # Generate Certificate Signing Request (CSR)
+    :param alternate_names:
+    :param nodename:
+    :return:
+    """
+
+    # while True:
+    #   C  = raw_input("Enter your Country Name (2 letter code) [US]: ")
+    #   if len(C) != 2:
+    #     print "You must enter two letters. You entered %r" % (C)
+    #     continue
+    #   ST = raw_input("Enter your State or Province <full name> []:California: ")
+    #   if len(ST) == 0:
+    #     print "Please enter your State or Province."
+    #     continue
+    #   L  = raw_input("Enter your (Locality Name (eg, city) []:San Francisco: ")
+    #   if len(L) == 0:
+    #     print "Please enter your City."
+    #     continue
+    #   O  = raw_input("Enter your Organization Name (eg, company) []:FTW Enterprise: ")
+    #   if len(L) == 0:
+    #      print "Please enter your Organization Name."
+    #      continue
+    #   OU = raw_input("Enter your Organizational Unit (eg, section) []:IT: ")
+    #   if len(OU) == 0:
+    #     print "Please enter your OU."
+    #     continue
+
     # Allows you to permanently set values required for CSR
     # To use, comment raw_input and uncomment this section.
-    # C  = 'US'
-    # ST = 'New York'
-    # L  = 'Location'
-    # O  = 'Organization'
-    # OU = 'Organizational Unit'
+    if alternate_names is None:
+        alternate_names = []
+    country = 'CA'
+    state = 'Ontario'
+    locality = 'Waterloo'
+    organization = 'Kik Interactive Inc.'
+    organizational_unit = 'Kik IT'
 
-    csrfile = 'host.csr'
-    keyfile = 'host.key'
-    TYPE_RSA = crypto.TYPE_RSA
+    csrfile = nodename + '.csr'
+    keyfile = nodename + '.key'
+
     # Appends SAN to have 'DNS:'
     ss = []
-    for i in sans:
+    for i in alternate_names:
         ss.append("DNS: %s" % i)
     ss = ", ".join(ss)
 
     req = crypto.X509Req()
     req.get_subject().CN = nodename
-    req.get_subject().countryName = C
-    req.get_subject().stateOrProvinceName = ST
-    req.get_subject().localityName = L
-    req.get_subject().organizationName = O
-    req.get_subject().organizationalUnitName = OU
+    req.get_subject().countryName = country
+    req.get_subject().stateOrProvinceName = state
+    req.get_subject().localityName = locality
+    req.get_subject().organizationName = organization
+    req.get_subject().organizationalUnitName = organizational_unit
     # Add in extensions
     base_constraints = ([
         crypto.X509Extension("keyUsage", False, "Digital Signature, Non Repudiation, Key Encipherment"),
@@ -75,30 +83,41 @@ def generateCSR(nodename, sans = []):
         x509_extensions.append(san_constraint)
     req.add_extensions(x509_extensions)
     # Utilizes generateKey function to kick off key generation.
-    key = generateKey(TYPE_RSA, 2048)
+    key = generate_key(crypto.TYPE_RSA, 2048)
     req.set_pubkey(key)
     req.sign(key, "sha1")
-    generateFiles(csrfile, req)
-    generateFiles(keyfile, key)
+    generate_files(csrfile, req)
+    generate_files(keyfile, key)
     return req
 
-# Generate Private Key
-def generateKey(type, bits):
 
+def generate_key(crypto_type, bits):
+    """
+    Generate Private Key
+
+    :param crypto_type:
+    :param bits:
+    :return:
+    """
     key = crypto.PKey()
-    key.generate_key(type, bits)
+    key.generate_key(crypto_type, bits)
     return key
-    
-# Generate .csr/key files.
-def generateFiles(mkFile, request):
 
-    if mkFile == 'host.csr':
-        f = open(mkFile, "w")
+
+def generate_files(mk_file, request):
+    """
+    Generate .csr/key files.
+
+    :param mk_file:
+    :param request:
+    """
+    if mk_file[-3:] == 'csr':
+        f = open(mk_file, "w")
         f.write(crypto.dump_certificate_request(crypto.FILETYPE_PEM, request))
         f.close()
         print crypto.dump_certificate_request(crypto.FILETYPE_PEM, request)
-    elif mkFile == 'host.key':
-        f = open(mkFile, "w")
+    elif mk_file[-3:] == 'key':
+        f = open(mk_file, "w")
         f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, request))
         f.close()
     else:
@@ -115,4 +134,4 @@ args = parser.parse_args()
 hostname = args.name
 sans = args.san
 
-generateCSR(hostname, sans)
+generate_csr(hostname, sans)
