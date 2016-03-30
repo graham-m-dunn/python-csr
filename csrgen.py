@@ -82,7 +82,7 @@ def generate_csr(nodename, alternate_names=None):
         san_constraint = crypto.X509Extension("subjectAltName", False, ss)
         x509_extensions.append(san_constraint)
     req.add_extensions(x509_extensions)
-    # Utilizes generateKey function to kick off key generation.
+    # Utilizes generate_key function to kick off key generation.
     key = generate_key(crypto.TYPE_RSA, 2048)
     req.set_pubkey(key)
     req.sign(key, "sha1")
@@ -108,6 +108,7 @@ def generate_files(mk_file, request):
     """
     Generate .csr/key files.
 
+    :rtype: None
     :param mk_file:
     :param request:
     """
@@ -117,6 +118,9 @@ def generate_files(mk_file, request):
         f.close()
         print crypto.dump_certificate_request(crypto.FILETYPE_PEM, request)
     elif mk_file[-3:] == 'key':
+        # TODO: App Engine wants an unencrypted pem file
+        # https://cloud.google.com/appengine/docs/python/console/using-custom-domains-and-ssl
+        # openssl rsa -in myserver.key -out myserver.key.pem
         f = open(mk_file, "w")
         f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, request))
         f.close()
